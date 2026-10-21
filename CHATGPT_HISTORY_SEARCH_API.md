@@ -2,7 +2,7 @@
 
 This guide describes keyword search, conversation retrieval, authentication, and pagination through ChatGPT’s internal backend API. It is independent of the MCP transport used to expose these operations.
 
-The connection behavior described here was verified on 20 October 2026. Ordinary curl with a Chrome-style `User-Agent` works for search and conversation requests. Curl’s default user-agent can trigger an HTML Cloudflare challenge; using Bun is not inherently required. The user-agent is a verified configuration for this environment, not a guarantee of access or an explanation of Cloudflare’s internal decision rules.
+The server makes requests directly in Python using HTTPX. It retains the Chrome-style `User-Agent` that worked during the initial investigation. Cloudflare may still challenge requests depending on the HTTP client and network; this header does not guarantee access.
 
 ## Authentication and connection
 
@@ -16,13 +16,15 @@ Accept: application/json
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
 ```
 
-Use curl's `--compressed` flag. No new package is needed for the working approach. The code below uses Python's standard library to load credentials and passes them to curl over stdin, keeping them out of command arguments and output. It makes one example search request and saves the JSON body. Change `api_path` for the other requests described below.
+Install the project dependencies from `requirements.txt`. HTTPX handles response decompression and supports `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, and `NO_PROXY` environment variables. The server uses a 10-second connection timeout and a 45-second overall deadline, verifies TLS certificates, and does not follow redirects or retry requests. Credentials stay in Python memory and request headers; error messages exclude raw response bodies and proxy details.
+
+The example below saves one search response. Change `api_path` for the other requests described below.
 
 ```python
 import json
 import os
 from pathlib import Path
-import subprocess
+import httpx
 
 api_path = '/conversations/search?query=SERENA'
 output = Path('serena-response.json')
@@ -41,21 +43,11 @@ headers = {
 if isinstance(tokens.get('account_id'), str):
     headers['ChatGPT-Account-ID'] = tokens['account_id']
 
-def quote_config(value):
-    return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
-
-config = ''.join('header = ' + quote_config(k + ': ' + v) + '\n'
-                 for k, v in headers.items())
-result = subprocess.run(
-    ['curl', '--silent', '--show-error', '--compressed', '--max-time', '60',
-     '--config', '-', '--write-out', '\n__STATUS__%{http_code}',
-     'https://chatgpt.com/backend-api' + api_path],
-    input=config, text=True, capture_output=True,
-)
-body, _, status = result.stdout.rpartition('\n__STATUS__')
-if result.returncode != 0 or status != '200':
-    raise RuntimeError(f'curl exit={result.returncode}, HTTP={status}')
-output.write_text(json.dumps(json.loads(body), ensure_ascii=False, indent=2))
+with httpx.Client(timeout=httpx.Timeout(45, connect=10), follow_redirects=False) as client:
+    response = client.get('https://chatgpt.com/backend-api' + api_path, headers=headers)
+if response.status_code != 200:
+    raise RuntimeError(f'HTTP {response.status_code}')
+output.write_text(json.dumps(response.json(), ensure_ascii=False, indent=2))
 print(f'Saved {output}')
 ```
 

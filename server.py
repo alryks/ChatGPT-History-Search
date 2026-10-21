@@ -15,6 +15,7 @@ from pydantic import Field
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 import uvicorn
+import httpx
 
 BASE_URL = "https://chatgpt.com/backend-api"
 USER_AGENT = (
@@ -47,10 +48,6 @@ def read_auth() -> dict[str, str]:
         ) from None
 
 
-def config_quote(value: str) -> str:
-    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
-
-
 async def backend_get(path: str) -> dict[str, Any]:
     headers = {
         **read_auth(),
@@ -58,47 +55,37 @@ async def backend_get(path: str) -> dict[str, Any]:
         "Accept": "application/json",
         "User-Agent": USER_AGENT,
     }
-    config = "".join(f"header = {config_quote(k + ': ' + v)}\n" for k, v in headers.items())
     try:
-        proc = await asyncio.create_subprocess_exec(
-            "curl", "--disable", "--silent", "--show-error", "--compressed",
-            "--proto", "=https", "--connect-timeout", "10", "--max-time", "45",
-            "--config", "-", "--write-out", "\n__MCP_STATUS__%{http_code}\t%{content_type}",
-            BASE_URL + path,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-    except OSError:
-        raise RuntimeError("Unable to start curl; use the supplied Docker image.") from None
-    try:
-        stdout, _ = await asyncio.wait_for(proc.communicate(config.encode()), timeout=50)
-    except (TimeoutError, asyncio.CancelledError) as exc:
-        if proc.returncode is None:
-            proc.kill()
-        await proc.wait()
-        if isinstance(exc, asyncio.CancelledError):
-            raise
+        async with asyncio.timeout(45):
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(45, connect=10),
+                follow_redirects=False,
+                trust_env=True,
+            ) as client:
+                response = await client.get(BASE_URL + path, headers=headers)
+    except (TimeoutError, httpx.TimeoutException):
         raise RuntimeError("ChatGPT request timed out.") from None
-    if proc.returncode:
-        # Never propagate curl diagnostics or raw error bodies with credentials.
-        raise RuntimeError(f"ChatGPT connection failed (curl exit {proc.returncode}).")
-    body, separator, metadata = stdout.rpartition(b"\n__MCP_STATUS__")
-    status, _, content_type = metadata.decode(errors="replace").partition("\t")
-    if not separator or status != "200":
-        if status == "401":
+    except httpx.RequestError:
+        # Request diagnostics can contain proxy credentials; do not expose them.
+        raise RuntimeError("ChatGPT connection failed. Check network and proxy settings.") from None
+    except (ValueError, httpx.InvalidURL):
+        raise RuntimeError("Invalid HTTP client or proxy configuration.") from None
+    status = response.status_code
+    content_type = response.headers.get("content-type", "").lower()
+    if status != 200:
+        if status == 401:
             message = "ChatGPT login was rejected. Renew it with `codex login` on the host."
-        elif status == "403" and "html" in content_type:
+        elif status == 403 and "html" in content_type:
             message = "Cloudflare challenged this HTTP client. Browser-style user-agent is already enabled."
-        elif status == "403":
+        elif status == 403:
             message = "ChatGPT denied access to this request (HTTP 403)."
-        elif status == "429":
+        elif status == 429:
             message = "ChatGPT rate limit reached. Wait before trying again."
         else:
-            message = f"ChatGPT returned HTTP {status or 'unknown'}."
+            message = f"ChatGPT returned HTTP {status}."
         raise RuntimeError(message)
     try:
-        result = json.loads(body)
+        result = response.json()
     except ValueError:
         raise RuntimeError("ChatGPT returned invalid JSON.") from None
     if not isinstance(result, dict):

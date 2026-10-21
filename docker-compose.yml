@@ -2,7 +2,7 @@ name: chatgpt-history-search
 
 services:
   mcp:
-    image: ghcr.io/alryks/chatgpt-history-search-mcp:1.0.0
+    image: ghcr.io/alryks/chatgpt-history-search-mcp:1.1.0
     environment:
       HTTPS_PROXY: ${HTTPS_PROXY:-}
       NO_PROXY: mcp,localhost,127.0.0.1

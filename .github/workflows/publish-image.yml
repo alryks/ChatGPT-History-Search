@@ -37,6 +37,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Refuse to overwrite a published release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if docker buildx imagetools inspect "ghcr.io/alryks/chatgpt-history-search-mcp:$VERSION" > /dev/null 2>&1; then
+            echo "Version $VERSION already exists. Publish a new version instead."
+            exit 1
+          fi
       - name: Build and publish release
         uses: docker/build-push-action@v7
         with:

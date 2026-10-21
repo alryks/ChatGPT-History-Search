@@ -80,7 +80,7 @@ docker compose logs --tail=50 mcp tunnel
 Stop both containers with `docker compose down`.
 
 The MCP image is published to [GitHub Container Registry](https://github.com/alryks/ChatGPT-history-search/pkgs/container/chatgpt-history-search-mcp)
-for AMD64 and ARM64 under release versions such as `1.0.0`. Docker selects the
+for AMD64 and ARM64 under release versions such as `1.1.0`. Docker selects the
 architecture automatically; architecture images and provenance records remain
 untagged. There are no `latest`, build-number, or architecture-specific aliases.
 To update, change the MCP image version in `docker-compose.yml`, then run
@@ -88,20 +88,32 @@ To update, change the MCP image version in `docker-compose.yml`, then run
 
 ## Releases
 
-Use `MAJOR.MINOR.PATCH`: `1.1.0` for a new backward-compatible feature, `1.0.1`
-for a small fix, and `2.0.0` for a breaking change. The existing project history
-is included in the initial `1.0.0` release. Ordinary commits do not publish images.
+Use `MAJOR.MINOR.PATCH`: increment MINOR for a backward-compatible feature,
+PATCH for a compatible fix or maintenance release, and MAJOR for a breaking
+change to the tools or supported configuration. Documentation-only changes do
+not need an image release. Version numbers are chosen manually; GitHub does not
+infer them from commits. Ordinary commits do not publish images.
+
+| Version | Change |
+| --- | --- |
+| `1.0.0` | First published server, using curl. |
+| `1.0.1` | Python HTTPX replaces the curl subprocess. |
+| `1.1.0` | Optional HTTP and SOCKS5 proxies for the server and tunnel. |
+
+These historical releases were rebuilt from their original source commits after
+the registry was reset; their digests differ from the original published builds.
 
 For a release, update the version in `server.py` and `docker-compose.yml`, commit
 the changes, and push a matching Git tag:
 
 ```sh
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.1
+git push origin v1.1.1
 ```
 
-GitHub Actions publishes only the corresponding image tag (`1.0.0` in this
-example). Choose the next version for subsequent releases; do not reuse a tag.
+GitHub Actions publishes only the corresponding image tag (`1.1.1` in this
+example) and refuses to overwrite an existing version. A feature release after
+`1.1.0` would be `1.2.0`; a breaking release would be `2.0.0`.
 
 This project uses undocumented ChatGPT endpoints, which may change or stop working.
 The connection between containers is private-network HTTP without authentication; do not expose the MCP server's port.

@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">ChatGPT History Search</title>
   <desc id="desc">A black magnifying glass containing the OpenAI logo on a white background.</desc>
-  <rect width="512" height="512" fill="#fff"/>
+  <rect width="512" height="512" rx="102.4" fill="#fff"/>
   <path d="M326 326 438 438" fill="none" stroke="#000" stroke-width="48" stroke-linecap="round"/>
   <circle cx="216" cy="216" r="148" fill="#fff" stroke="#000" stroke-width="28"/>
   <g transform="translate(122 122) scale(7.8333333333)" fill="#000">

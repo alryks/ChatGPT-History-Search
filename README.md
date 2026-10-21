@@ -11,12 +11,16 @@ Runs as an MCP server in Docker, connected to ChatGPT through OpenAI's Secure MC
 - Docker with Docker Compose.
 - A ChatGPT login saved by `codex login` on the Docker host.
   An OpenAI API-key login alone cannot access chat history.
-- A [Secure MCP Tunnel](https://platform.openai.com/settings/organization/tunnels) and a Platform runtime API key with **Tunnels Read + Use** permissions.
+- A [Secure MCP Tunnel](https://platform.openai.com/settings/organization/tunnels) and a [Platform runtime API key](https://platform.openai.com/settings/organization/api-keys) with **Tunnels Read + Use** permissions.
   See [OpenAI's setup guide](https://github.com/openai/tunnel-client/blob/master/docs/onboarding.md).
 
 ## Setup
 
-1. Create a `.env` file in the project directory:
+1. Copy [`.env.example`](.env.example) to `.env` and fill in your tunnel ID and API key:
+
+   ```sh
+   cp .env.example .env
+   ```
 
    ```dotenv
    TUNNEL_ID=tunnel_your_tunnel_id
@@ -35,7 +39,7 @@ Runs as an MCP server in Docker, connected to ChatGPT through OpenAI's Secure MC
 
 3. Add a custom MCP connection in ChatGPT, choose **Tunnel**, and select the same tunnel ID. Keep the connection private: it can read the chat history belonging to the mounted account.
 
-Try asking: "Find my chats about <your topic> and link me to the relevant conversations."
+Try asking: "Find my chats about `your topic` and link me to the relevant conversations."
 
 ## Tools
 

@@ -80,3 +80,7 @@ Stop with `docker compose down`.
 This uses undocumented ChatGPT endpoints and may break when they change.
 Keep the MCP port private: the HTTP server has no client authentication.
 See the [API guide](CHATGPT_HISTORY_SEARCH_API.md) for technical details.
+
+## License
+
+[MIT](LICENSE).

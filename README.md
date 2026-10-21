@@ -82,7 +82,8 @@ Stop both containers with `docker compose down`.
 The MCP image is published to [GitHub Container Registry](https://github.com/alryks/ChatGPT-history-search/pkgs/container/chatgpt-history-search-mcp)
 for AMD64 and ARM64 under release versions such as `1.1.0`. Docker selects the
 architecture automatically; architecture images and provenance records remain
-untagged. There are no `latest`, build-number, or architecture-specific aliases.
+untagged. `latest` points to the current stable release. There are no build-number
+or architecture-specific aliases.
 To update, change the MCP image version in `docker-compose.yml`, then run
 `docker compose pull` followed by `docker compose up -d`.
 
@@ -111,8 +112,8 @@ git tag v1.1.1
 git push origin v1.1.1
 ```
 
-GitHub Actions publishes only the corresponding image tag (`1.1.1` in this
-example) and refuses to overwrite an existing version. A feature release after
+GitHub Actions publishes the corresponding image tag (`1.1.1` in this example)
+and updates `latest`. It refuses to overwrite an existing numbered version. A feature release after
 `1.1.0` would be `1.2.0`; a breaking release would be `2.0.0`.
 
 This project uses undocumented ChatGPT endpoints, which may change or stop working.

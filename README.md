@@ -113,7 +113,8 @@ git push origin v1.1.1
 ```
 
 GitHub Actions publishes the corresponding image tag (`1.1.1` in this example)
-and updates `latest`. It refuses to overwrite an existing numbered version. A feature release after
+and updates `latest`. It refuses to overwrite an existing numbered version.
+A feature release after
 `1.1.0` would be `1.2.0`; a breaking release would be `2.0.0`.
 
 This project uses undocumented ChatGPT endpoints, which may change or stop working.

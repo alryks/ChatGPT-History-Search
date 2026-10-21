@@ -3,6 +3,11 @@ name: chatgpt-history-search
 services:
   mcp:
     image: ghcr.io/alryks/chatgpt-history-search-mcp:latest
+    environment:
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: mcp,localhost,127.0.0.1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.build_opener(urllib.request.ProxyHandler({})).open('http://127.0.0.1:8000/health', timeout=3).close()"]
       interval: 10s
@@ -24,6 +29,10 @@ services:
       CONTROL_PLANE_API_KEY: ${TUNNEL_API_KEY:?Set your tunnel runtime API key}
       MCP_SERVER_URL: http://mcp:8000/mcp
       HEALTH_LISTEN_ADDR: 127.0.0.1:8080
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: mcp,localhost,127.0.0.1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       mcp:
         condition: service_healthy

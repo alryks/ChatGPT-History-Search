@@ -41,6 +41,21 @@ Runs as an MCP server in Docker, connected to ChatGPT through OpenAI's Secure MC
 
 Try asking: "Find my chats about `your topic` and link me to the relevant conversations."
 
+## Optional proxy
+
+Set `HTTPS_PROXY` in `.env` to route both ChatGPT requests and the tunnel's OpenAI
+connection through an HTTP or SOCKS5 proxy:
+
+```dotenv
+HTTPS_PROXY='socks5h://username:password@proxy-host:10808'
+```
+
+For an HTTP proxy, use `http://proxy-host:port`. Omit `username:password@` if no authentication is needed; URL-encode special characters in either credential.
+Leave the setting empty for direct connections. Internal MCP traffic stays direct.
+
+For a proxy running on the Docker host, use `host.docker.internal` as the hostname.
+The proxy must listen on an interface reachable from Docker, rather than only the host's loopback address. Apply changes with `docker compose up -d`.
+
 ## Tools
 
 | Tool | What it does |

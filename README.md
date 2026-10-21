@@ -81,8 +81,10 @@ Stop both containers with `docker compose down`.
 
 The MCP image is published to [GitHub Container Registry](https://github.com/alryks/ChatGPT-history-search/pkgs/container/chatgpt-history-search-mcp)
 for AMD64 and ARM64. Changes to the server or image build on `main` publish a new
-`latest` image automatically. To update, run `docker compose pull` followed by
-`docker compose up -d`.
+`latest` image automatically. Docker selects the architecture for your machine.
+Each publish also has a numbered `build-N` tag. Use `latest-amd64` or `latest-arm64`
+to select an architecture explicitly, or `build-N-amd64` / `build-N-arm64` for a
+specific build. To update, run `docker compose pull` followed by `docker compose up -d`.
 
 This project uses undocumented ChatGPT endpoints, which may change or stop working.
 The connection between containers is private-network HTTP without authentication; do not expose the MCP server's port.

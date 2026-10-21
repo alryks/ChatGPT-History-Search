@@ -1,4 +1,5 @@
 name: Publish Docker image
+run-name: ChatGPT History Search MCP · build ${{ github.run_number }}
 
 on:
   push:
@@ -33,6 +34,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and publish
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -40,10 +42,42 @@ jobs:
           push: true
           tags: |
             ghcr.io/alryks/chatgpt-history-search-mcp:latest
-            ghcr.io/alryks/chatgpt-history-search-mcp:sha-${{ github.sha }}
+            ghcr.io/alryks/chatgpt-history-search-mcp:build-${{ github.run_number }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.title=ChatGPT History Search MCP
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=build-${{ github.run_number }}
+          annotations: |
+            index:org.opencontainers.image.title=ChatGPT History Search MCP
+            index:org.opencontainers.image.version=build-${{ github.run_number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Tag AMD64 and ARM64 images
+        env:
+          IMAGE: ghcr.io/alryks/chatgpt-history-search-mcp
+          DIGEST: ${{ steps.build.outputs.digest }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          docker buildx imagetools inspect "$IMAGE@$DIGEST" --raw > manifest.json
+          for arch in amd64 arm64; do
+            digest=$(jq -er --arg arch "$arch" '.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch) | .digest' manifest.json)
+            docker buildx imagetools create --prefer-index=false \
+              --tag "$IMAGE:latest-$arch" \
+              --tag "$IMAGE:build-$BUILD_NUMBER-$arch" \
+              "$IMAGE@$digest"
+          done
+      - name: Summarize image tags
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          {
+            echo '## ChatGPT History Search MCP'
+            echo '| Tag | Architecture |'
+            echo '| --- | --- |'
+            echo "| latest / build-$BUILD_NUMBER | AMD64 + ARM64 (automatic selection) |"
+            echo "| latest-amd64 / build-$BUILD_NUMBER-amd64 | Linux AMD64 |"
+            echo "| latest-arm64 / build-$BUILD_NUMBER-arm64 | Linux ARM64 |"
+            echo ''
+            echo 'The multi-platform image also contains build-provenance records, shown as unknown/unknown by some registry views.'
+          } >> "$GITHUB_STEP_SUMMARY"

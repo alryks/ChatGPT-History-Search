@@ -1,0 +1,23 @@
+name: Reset legacy MCP image versions
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove legacy image versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          package="users/alryks/packages/container/chatgpt-history-search-mcp"
+          gh api --paginate "$package/versions?per_page=100" --jq '.[].id' > "$RUNNER_TEMP/legacy-versions"
+          while read -r version_id; do
+            gh api --method DELETE "$package/versions/$version_id"
+          done < "$RUNNER_TEMP/legacy-versions"
+          echo "Deleted $(wc -l < "$RUNNER_TEMP/legacy-versions") legacy versions."

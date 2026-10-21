@@ -145,7 +145,7 @@ def transcript(data: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 mcp = MCPServer(
-    "chatgpt-history-search-mcp", version="0.3.0",
+    "chatgpt-history-search-mcp", version="1.0.0",
     instructions=(
         "Search the user's ChatGPT history using search_chatgpt_messages. "
         "Try alternative keywords when needed; empty query lists recent results. "

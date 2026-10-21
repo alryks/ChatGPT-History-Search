@@ -80,11 +80,28 @@ docker compose logs --tail=50 mcp tunnel
 Stop both containers with `docker compose down`.
 
 The MCP image is published to [GitHub Container Registry](https://github.com/alryks/ChatGPT-history-search/pkgs/container/chatgpt-history-search-mcp)
-for AMD64 and ARM64. Changes to the server or image build on `main` publish a new
-`latest` image automatically. Docker selects the architecture for your machine.
-Each publish also has a numbered `build-N` tag. Use `latest-amd64` or `latest-arm64`
-to select an architecture explicitly, or `build-N-amd64` / `build-N-arm64` for a
-specific build. To update, run `docker compose pull` followed by `docker compose up -d`.
+for AMD64 and ARM64 under release versions such as `1.0.0`. Docker selects the
+architecture automatically; architecture images and provenance records remain
+untagged. There are no `latest`, build-number, or architecture-specific aliases.
+To update, change the MCP image version in `docker-compose.yml`, then run
+`docker compose pull` followed by `docker compose up -d`.
+
+## Releases
+
+Use `MAJOR.MINOR.PATCH`: `1.1.0` for a new backward-compatible feature, `1.0.1`
+for a small fix, and `2.0.0` for a breaking change. The existing project history
+is included in the initial `1.0.0` release. Ordinary commits do not publish images.
+
+For a release, update the version in `server.py` and `docker-compose.yml`, commit
+the changes, and push a matching Git tag:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+GitHub Actions publishes only the corresponding image tag (`1.0.0` in this
+example). Choose the next version for subsequent releases; do not reuse a tag.
 
 This project uses undocumented ChatGPT endpoints, which may change or stop working.
 The connection between containers is private-network HTTP without authentication; do not expose the MCP server's port.

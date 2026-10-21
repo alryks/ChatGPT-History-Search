@@ -1,16 +1,9 @@
 name: Publish Docker image
-run-name: ChatGPT History Search MCP · build ${{ github.run_number }}
+run-name: ChatGPT History Search MCP · ${{ github.ref_name }}
 
 on:
   push:
-    branches: [main]
-    paths:
-      - server.py
-      - requirements.txt
-      - Dockerfile
-      - .dockerignore
-      - .github/workflows/publish-image.yml
-  workflow_dispatch:
+    tags: ['v[0-9]*.[0-9]*.[0-9]*']
 
 permissions:
   contents: read
@@ -18,13 +11,24 @@ permissions:
 
 concurrency:
   group: publish-image-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Read release version
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Release tags must use vMAJOR.MINOR.PATCH."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
       - name: Log in to GHCR
@@ -33,51 +37,20 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and publish
-        id: build
+      - name: Build and publish release
         uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ghcr.io/alryks/chatgpt-history-search-mcp:latest
-            ghcr.io/alryks/chatgpt-history-search-mcp:build-${{ github.run_number }}
+          tags: ghcr.io/alryks/chatgpt-history-search-mcp:${{ steps.version.outputs.version }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.title=ChatGPT History Search MCP
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=build-${{ github.run_number }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
           annotations: |
             index:org.opencontainers.image.title=ChatGPT History Search MCP
-            index:org.opencontainers.image.version=build-${{ github.run_number }}
+            index:org.opencontainers.image.version=${{ steps.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Tag AMD64 and ARM64 images
-        env:
-          IMAGE: ghcr.io/alryks/chatgpt-history-search-mcp
-          DIGEST: ${{ steps.build.outputs.digest }}
-          BUILD_NUMBER: ${{ github.run_number }}
-        run: |
-          docker buildx imagetools inspect "$IMAGE@$DIGEST" --raw > manifest.json
-          for arch in amd64 arm64; do
-            digest=$(jq -er --arg arch "$arch" '.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch) | .digest' manifest.json)
-            docker buildx imagetools create --prefer-index=false \
-              --tag "$IMAGE:latest-$arch" \
-              --tag "$IMAGE:build-$BUILD_NUMBER-$arch" \
-              "$IMAGE@$digest"
-          done
-      - name: Summarize image tags
-        env:
-          BUILD_NUMBER: ${{ github.run_number }}
-        run: |
-          {
-            echo '## ChatGPT History Search MCP'
-            echo '| Tag | Architecture |'
-            echo '| --- | --- |'
-            echo "| latest / build-$BUILD_NUMBER | AMD64 + ARM64 (automatic selection) |"
-            echo "| latest-amd64 / build-$BUILD_NUMBER-amd64 | Linux AMD64 |"
-            echo "| latest-arm64 / build-$BUILD_NUMBER-arm64 | Linux ARM64 |"
-            echo ''
-            echo 'The multi-platform image also contains build-provenance records, shown as unknown/unknown by some registry views.'
-          } >> "$GITHUB_STEP_SUMMARY"

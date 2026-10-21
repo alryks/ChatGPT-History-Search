@@ -2,9 +2,7 @@ name: chatgpt-history-search
 
 services:
   mcp:
-    build:
-      context: .
-    image: chatgpt-history-search-mcp:local
+    image: ghcr.io/alryks/chatgpt-history-search-mcp:latest
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "--max-time", "3", "http://127.0.0.1:8000/health"]
       interval: 10s

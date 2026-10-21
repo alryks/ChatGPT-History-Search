@@ -29,7 +29,8 @@ Runs as an MCP server in Docker, connected to ChatGPT through OpenAI's Secure MC
 2. Start both containers:
 
    ```sh
-   docker compose up -d --build
+   docker compose pull
+   docker compose up -d
    ```
 
 3. Add a custom MCP connection in ChatGPT, choose **Tunnel**, and select the same tunnel ID. Keep the connection private: it can read the chat history belonging to the mounted account.
@@ -58,6 +59,11 @@ docker compose logs --tail=50 mcp tunnel
 - **HTTP 429:** wait before retrying.
 
 Stop both containers with `docker compose down`.
+
+The MCP image is published to [GitHub Container Registry](https://github.com/alryks/ChatGPT-history-search/pkgs/container/chatgpt-history-search-mcp)
+for AMD64 and ARM64. Changes to the server or image build on `main` publish a new
+`latest` image automatically. To update, run `docker compose pull` followed by
+`docker compose up -d`.
 
 This project uses undocumented ChatGPT endpoints, which may change or stop working.
 The connection between containers is private-network HTTP without authentication; do not expose the MCP server's port.
